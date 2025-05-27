@@ -29,6 +29,8 @@ public sealed class TypeRegistrar : ITypeRegistrar
 
         _services.Configure<UpdateOptions>(configuration.GetSection(nameof(UpdateOptions)));
         _services.AddSingleton<IUpdateService, UpdateService>();
+
+        _services.RegisterSerialPingCommand();
     }
 
     public ITypeResolver Build() => new TypeResolver(_services.BuildServiceProvider());

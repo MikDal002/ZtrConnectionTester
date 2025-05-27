@@ -40,7 +40,7 @@ class Program
             config.SetApplicationName("ZtrConnectionTester");
             config.SetHelpProvider(new CustomHelpProvider(config.Settings));
 
-            config.AddCommand<ExampleCommand>("commandName");
+            config.AddCommand<SerialPingCommand>("serialPing");
             config.AddCommand<UpdateCommand>("version")
                 .WithExample("version", "--update");
 
