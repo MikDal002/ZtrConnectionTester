@@ -2,11 +2,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 using System;
-using System.IO;
-using ZtrTemplates.Configuration.Shared;
-using ZtrTemplates.Console.Infrastructure;
+using ZtrConnectionTester.Configuration.Shared;
+using ZtrConnectionTester.Console.Infrastructure;
 
-namespace ZtrTemplates.Console.DependencyInjection;
+namespace ZtrConnectionTester.Console.DependencyInjection;
 
 public sealed class TypeRegistrar : ITypeRegistrar
 {
@@ -18,7 +17,7 @@ public sealed class TypeRegistrar : ITypeRegistrar
 
         // --- Configuration Setup ---
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
+            .SetBasePath(AppContext.BaseDirectory)
             // IF file doesn't exists run _build project first.
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .Build();

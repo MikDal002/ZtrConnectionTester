@@ -1,6 +1,6 @@
-using ZtrTemplates.Console.Infrastructure;
+using ZtrConnectionTester.Console.Infrastructure;
 
-namespace ZtrTemplates.Console.Tests.Infrastructure;
+namespace ZtrConnectionTester.Console.Tests.Infrastructure;
 
 [TestFixture]
 public class ConsoleAppCancellationTokenSourceTests

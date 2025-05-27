@@ -3,11 +3,11 @@ using Spectre.Console.Cli;
 using System.Linq;
 using System.Threading.Tasks;
 using Velopack;
-using ZtrTemplates.Console.Commands.Base; // Added for GlobalCommandSettings
-using ZtrTemplates.Console.DependencyInjection;
-using ZtrTemplates.Console.Infrastructure;
+using ZtrConnectionTester.Console.Commands.Base; // Added for GlobalCommandSettings
+using ZtrConnectionTester.Console.DependencyInjection;
+using ZtrConnectionTester.Console.Infrastructure;
 
-namespace ZtrTemplates.Console;
+namespace ZtrConnectionTester.Console;
 class Program
 {
     static async Task Main(string[] args)
@@ -37,7 +37,7 @@ class Program
             config.ValidateExamples();
 #endif
 
-            config.SetApplicationName("ZtrTemplates.Console");
+            config.SetApplicationName("ZtrConnectionTester");
             config.SetHelpProvider(new CustomHelpProvider(config.Settings));
 
             config.AddCommand<ExampleCommand>("commandName");
