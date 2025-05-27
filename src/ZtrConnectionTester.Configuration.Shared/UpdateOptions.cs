@@ -1,5 +1,5 @@
-// In ZtrTemplates.Configuration.Shared/UpdateOptions.cs
-namespace ZtrTemplates.Configuration.Shared;
+// In ZtrConnectionTester.Configuration.Shared/UpdateOptions.cs
+namespace ZtrConnectionTester.Configuration.Shared;
 
 public class UpdateOptions
 {

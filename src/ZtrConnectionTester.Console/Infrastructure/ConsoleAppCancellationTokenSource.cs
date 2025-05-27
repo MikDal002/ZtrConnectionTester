@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 
-namespace ZtrTemplates.Console.Infrastructure;
+namespace ZtrConnectionTester.Console.Infrastructure;
 
 /// <summary>
 /// Manages a CancellationTokenSource that gets cancelled on console cancel key press (Ctrl+C) or process exit.

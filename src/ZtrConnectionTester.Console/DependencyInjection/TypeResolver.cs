@@ -2,7 +2,7 @@
 using Spectre.Console.Cli;
 using System;
 
-namespace ZtrTemplates.Console;
+namespace ZtrConnectionTester.Console;
 
 public sealed class TypeResolver(IServiceProvider provider) : ITypeResolver, IDisposable
 {

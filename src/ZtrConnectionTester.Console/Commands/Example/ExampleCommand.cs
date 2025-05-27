@@ -6,10 +6,10 @@ using System.ComponentModel;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using ZtrTemplates.Console.Commands.Base;
-using ZtrTemplates.Console.Infrastructure;
+using ZtrConnectionTester.Console.Commands.Base;
+using ZtrConnectionTester.Console.Infrastructure;
 
-namespace ZtrTemplates.Console;
+namespace ZtrConnectionTester.Console;
 
 public class ExampleSettings : CommandSettings
 {

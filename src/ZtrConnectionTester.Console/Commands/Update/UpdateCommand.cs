@@ -3,9 +3,9 @@ using Spectre.Console.Cli;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
-using ZtrTemplates.Console.Commands.Base;
+using ZtrConnectionTester.Console.Commands.Base;
 
-namespace ZtrTemplates.Console;
+namespace ZtrConnectionTester.Console;
 
 public class VersionCommandSettings : CommandSettings
 {

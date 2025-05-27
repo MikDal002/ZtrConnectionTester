@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Velopack;
 using Velopack.Sources;
 
-namespace ZtrTemplates.Console;
+namespace ZtrConnectionTester.Console;
 
 public interface IUpdateService
 {
@@ -19,7 +19,7 @@ public class UpdateService : IUpdateService
 {
     private readonly UpdateManager _updateManager;
 
-    public UpdateService(IOptions<ZtrTemplates.Configuration.Shared.UpdateOptions> updateOptions)
+    public UpdateService(IOptions<ZtrConnectionTester.Configuration.Shared.UpdateOptions> updateOptions)
     {
         var options = updateOptions.Value;
         var url = options.UpdateUrl;
