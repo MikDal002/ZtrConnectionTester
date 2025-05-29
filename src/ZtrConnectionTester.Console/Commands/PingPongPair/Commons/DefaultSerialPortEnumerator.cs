@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO.Ports;
 
-namespace ZtrConnectionTester.Console;
+namespace ZtrConnectionTester.Console.Commands.PingPongPair.Commons;
 
 /// <summary>
 ///     Abstraction for enumerating available serial ports.

@@ -3,7 +3,9 @@ using Spectre.Console.Cli;
 using System.Linq;
 using System.Threading.Tasks;
 using Velopack;
-using ZtrConnectionTester.Console.Commands.Base; // Added for GlobalCommandSettings
+using ZtrConnectionTester.Console.Commands.Base;
+using ZtrConnectionTester.Console.Commands.PingPongPair.PongCommand; // Added for GlobalCommandSettings
+using ZtrConnectionTester.Console.Commands.PingPongPair.SerialPing;
 using ZtrConnectionTester.Console.DependencyInjection;
 using ZtrConnectionTester.Console.Infrastructure;
 
@@ -41,6 +43,7 @@ class Program
             config.SetHelpProvider(new CustomHelpProvider(config.Settings));
 
             config.AddCommand<SerialPingCommand>("serialPing");
+            config.AddCommand<SerialPongCommand>("serialPong");
             config.AddCommand<UpdateCommand>("version")
                 .WithExample("version", "--update");
 
