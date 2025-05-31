@@ -18,44 +18,47 @@ public interface IPongReturnService
 }
 public class PongReturnService(IAnsiConsole console) : IPongReturnService
 {
-    public async Task ReceivePackageAndReturnItAsync(Stream stream, CancellationToken cancellationToken)
+    public async Task StartPongTask(Stream stream, CancellationToken cancellationToken)
     {
         do
         {
-            try
-            {
-                if (stream == null)
-                {
-                    throw new ArgumentNullException(nameof(stream));
-                }
-
-                var incomingMessage = await stream.ReadLineWithTimeoutAsync(cancellationToken);
-
-                if (incomingMessage.Contains("PING", StringComparison.OrdinalIgnoreCase))
-                {
-                    using var writer = new StreamWriter(stream, Encoding.ASCII, leaveOpen: true);
-                    await writer.WriteAsync("PONG\n");
-                    await writer.FlushAsync(cancellationToken);
-                    console.WriteLine("PONG sent back!");
-                }
-                else
-                {
-                    throw new InvalidOperationException(
-                        $"Incoming message does not contain PING. Contains {incomingMessage}.");
-                }
-            }
-            catch (TimeoutException ex)
-            {
-                console.WriteLine(ex.Message);
-            }
-            catch (TaskCanceledException)
-            {
-                // Nothing interesting
-            }
+            await ReceivePackageAndReturnItAsync(stream, cancellationToken);
         } while (!cancellationToken.IsCancellationRequested);
     }
-}
+    public async Task ReceivePackageAndReturnItAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
 
+            var incomingMessage = await stream.ReadLineWithTimeoutAsync(timeout: TimeSpan.FromSeconds(1), cancellationToken: cancellationToken);
+
+            if (incomingMessage.Contains("PING", StringComparison.OrdinalIgnoreCase))
+            {
+                using var writer = new StreamWriter(stream, Encoding.ASCII, leaveOpen: true);
+                await writer.WriteAsync("PONG\n");
+                await writer.FlushAsync(cancellationToken);
+                console.WriteLine("PONG sent back!");
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Incoming message does not contain PING. Contains {incomingMessage}.");
+            }
+        }
+        catch (TimeoutException ex)
+        {
+            console.WriteLine(ex.Message);
+        }
+        catch (TaskCanceledException)
+        {
+            // Nothing interesting
+        }
+    }
+}
 
 public static class SerialPongDependencyInjection
 {
@@ -72,15 +75,12 @@ public class SerialPongSettings(ISerialPortEnumerator portEnumerator) : BaseSeri
 {
 }
 
-
-
 public class SerialPongCommand(
     IAnsiConsole console,
     IPongReturnService pongReturnService,
     ILogger<SerialPongCommand> logger) : CancellableAsyncCommand<SerialPongSettings>
 {
     private readonly ILogger<SerialPongCommand> _logger = logger;
-
 
     public override async Task<int> ExecuteAsync(CommandContext context, SerialPongSettings settings,
         CancellationToken cancellationToken)

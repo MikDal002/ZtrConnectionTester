@@ -8,31 +8,37 @@ namespace ZtrConnectionTester.Console.Commands.PingPongPair.Commons;
 
 public static class StreamExtensions
 {
-    public static async Task<string?> ReadLineWithTimeoutAsync(this Stream stream, CancellationToken cancellationToken)
+    public static async Task<string> ReadLineWithTimeoutAsync(this Stream stream, TimeSpan timeout = default, CancellationToken cancellationToken = default)
     {
         using var reader = new StreamReader(stream, Encoding.ASCII, leaveOpen: true);
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var fromSeconds = TimeSpan.FromSeconds(10);
-   
-        var readLineTask = ReadTask();
-        var timeoutTask = Task.Delay(fromSeconds, timeoutCts.Token);
-        var firstTask = await Task.WhenAny(readLineTask, timeoutTask);
-        if (firstTask == readLineTask)
+        var effectiveTimeout = timeout == TimeSpan.Zero ? TimeSpan.FromSeconds(1) : timeout;
+
+        timeoutCts.CancelAfter(effectiveTimeout);
+
+        try
         {
-            var readLine = await readLineTask;
-            return readLine;
+            return await ReadTask();
         }
-        else
+        catch (OperationCanceledException oce) when (oce.CancellationToken == timeoutCts.Token)
         {
-            throw new TimeoutException($"Waiting for the incoming line took over {fromSeconds}.");
+            if (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            else
+            {
+                throw new TimeoutException($"Waiting for the incoming line took over {effectiveTimeout}.", oce);
+            }
         }
+        // Other exceptions (including OperationCanceledException from a different token) will propagate.
 
         async Task<string> ReadTask()
         {
             string? read = null;
             while (read is null)
             {
-                read = await reader.ReadLineAsync(timeoutCts.Token).AsTask();
+                read = await reader.ReadLineAsync(timeoutCts.Token);
             }
 
             return read;

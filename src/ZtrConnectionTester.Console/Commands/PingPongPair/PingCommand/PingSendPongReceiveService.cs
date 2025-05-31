@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -14,7 +15,7 @@ interface IPingSendPongReceiveService
 
 public class PingSendPongReceiveService(IPingDataCollector pingPongDataCollector) : IPingSendPongReceiveService
 {
-    public async Task SendPackageAsync(Stream bidirectionalStream)
+    public static async Task SendPackageAsync(Stream bidirectionalStream)
     {
         if (bidirectionalStream == null)
         {
@@ -25,45 +26,37 @@ public class PingSendPongReceiveService(IPingDataCollector pingPongDataCollector
         const string payloadString = "PING\n";
         var payloadBytes = Encoding.ASCII.GetBytes(payloadString);
 
-        try
-        {
-            // Write the payload to the stream
-            await bidirectionalStream.WriteAsync(payloadBytes, 0, payloadBytes.Length);
-            await bidirectionalStream.FlushAsync();
-        }
-        catch (Exception)
-        {
-            // Rethrow any exceptions for now without additional handling
-            throw;
-        }
+        // Write the payload to the stream
+        await bidirectionalStream.WriteAsync(payloadBytes, 0, payloadBytes.Length);
+        await bidirectionalStream.FlushAsync();
     }
 
-    public async Task SendPackageAndWaitForResponeAsync(Stream bidirectionalStream, CancellationToken cancellationToken)
+    public async Task SendPackageAndWaitForResponseAsync(Stream bidirectionalStream, CancellationToken cancellationToken)
     {
         try
         {
+            var stopwatch = Stopwatch.StartNew();
+
             // Send the package
             await SendPackageAsync(bidirectionalStream);
 
             // Read the response
-            var response = await bidirectionalStream.ReadLineWithTimeoutAsync(cancellationToken);
+            var response = await bidirectionalStream.ReadLineWithTimeoutAsync(timeout: TimeSpan.FromSeconds(1), cancellationToken: cancellationToken);
+            stopwatch.Stop();
 
             // Check if the response contains "PONG"
             if (response.Contains("PONG", StringComparison.OrdinalIgnoreCase))
             {
-                pingPongDataCollector.AddLogEntry(new LogEntry(DateTime.UtcNow, "Received valid response: PONG",
-                    LogLevel.Info));
+                pingPongDataCollector.AddPingResult(PingResult.SuccessResult(stopwatch.ElapsedMilliseconds, response.Length));
             }
             else
             {
-                pingPongDataCollector.AddLogEntry(new LogEntry(DateTime.UtcNow,
-                    $"Unexpected response: `{response}`",
-                    LogLevel.Warning));
+                pingPongDataCollector.AddPingResult(PingResult.CorruptedResult($"Unexpected response: `{response}`"));
             }
         }
         catch (TimeoutException)
         {
-            pingPongDataCollector.AddLogEntry(new LogEntry(DateTime.Now, "Timeout occured!", LogLevel.Error));
+            pingPongDataCollector.AddPingResult(PingResult.TimeoutResult());
         }
         catch (TaskCanceledException)
         {

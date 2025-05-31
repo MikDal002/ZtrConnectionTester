@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ZtrConnectionTester.Console": {
+      "commandName": "Project",
+      "commandLineArgs": "serialPing --port com3"
+    }
+  }
+}

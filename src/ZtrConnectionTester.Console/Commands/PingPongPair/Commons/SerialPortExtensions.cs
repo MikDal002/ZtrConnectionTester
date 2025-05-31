@@ -29,8 +29,6 @@ public static class SerialPortExtensions
             throw new InvalidOperationException($"Cannot open port {settings.Port.EscapeMarkup()}");
         }
 
-
-
         var grid = new Grid()
             .AddColumn(new GridColumn().NoWrap().PadRight(4))
             .AddColumn()

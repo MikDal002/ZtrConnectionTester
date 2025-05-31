@@ -7,7 +7,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Ports;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,16 +28,14 @@ public static class SerialPingDependencyInjection
 
 public class SerialPingSettings(ISerialPortEnumerator portEnumerator) : BaseSerialPingSettings(portEnumerator)
 {
-    
+
 }
-
-
 
 public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataCollector, ILogger<SerialPingCommand> logger) : CancellableAsyncCommand<SerialPingSettings>
 {
     private readonly ILogger<SerialPingCommand> _logger = logger;
 
-    PingSendPongReceiveService _pingSendPongReceiveService = new PingSendPongReceiveService(dataCollector);
+    PingSendPongReceiveService _pingSendPongReceiveService = new(dataCollector);
     public override async Task<int> ExecuteAsync(CommandContext context, SerialPingSettings settings, CancellationToken cancellationToken)
     {
         console.MarkupLine("[yellow]Press Ctrl+C to stop[/]");
@@ -94,7 +91,7 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
 
     }
 
-    private void DrawSummary(Layout layout, IPingDataCollector result)
+    private static void DrawSummary(Layout layout, IPingDataCollector result)
     {
         var summary = result.GetSummary();
 
@@ -117,7 +114,7 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
                 .Expand());
     }
 
-    private void DrawLogs(Layout layout, IPingDataCollector result)
+    private static void DrawLogs(Layout layout, IPingDataCollector result)
     {
         var logEntries = result.GetRecentLogEntries(15); // Display last 15 logs
 
@@ -143,7 +140,7 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
 
     async Task<IPingDataCollector> MyProcessAsync(Stream serialPortBaseStream, CancellationToken cancellationToken)
     {
-        await _pingSendPongReceiveService.SendPackageAndWaitForResponeAsync(serialPortBaseStream, cancellationToken);
+        await _pingSendPongReceiveService.SendPackageAndWaitForResponseAsync(serialPortBaseStream, cancellationToken);
         return dataCollector;
     }
 }
@@ -238,7 +235,9 @@ public class InMemoryPingDataCollector : IPingDataCollector
     public void AddLogEntry(LogEntry entry)
     {
         _logEntries.Enqueue(entry);
-        while (_logEntries.Count > MaxLogEntries && _logEntries.TryDequeue(out _)) { }
+        while (_logEntries.Count > MaxLogEntries && _logEntries.TryDequeue(out _))
+        {
+        }
     }
 
     public IEnumerable<LogEntry> GetRecentLogEntries(int count) =>
