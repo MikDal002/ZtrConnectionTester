@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console.Cli;
 using System;
 using ZtrConnectionTester.Configuration.Shared;
+using ZtrConnectionTester.Console.Commands.PingPongPair.PongCommand;
+using ZtrConnectionTester.Console.Commands.PingPongPair.SerialPing;
 using ZtrConnectionTester.Console.Infrastructure;
 
 namespace ZtrConnectionTester.Console.DependencyInjection;
@@ -29,6 +31,9 @@ public sealed class TypeRegistrar : ITypeRegistrar
 
         _services.Configure<UpdateOptions>(configuration.GetSection(nameof(UpdateOptions)));
         _services.AddSingleton<IUpdateService, UpdateService>();
+
+        _services.RegisterSerialPingCommand();
+        _services.RegisterSerialPongCommand();
     }
 
     public ITypeResolver Build() => new TypeResolver(_services.BuildServiceProvider());
