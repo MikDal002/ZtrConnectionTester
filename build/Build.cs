@@ -65,6 +65,16 @@ public partial class Build : NukeBuild
             TestResultDirectory.DeleteDirectory();
         });
 
+    Target Format => _ => _
+    .Executes(() =>
+    {
+        DotNetTasks.DotNetFormat(s => s
+            .SetProject(Solution)
+            .When(_ => IsServerBuild, s => s)
+            .SetVerifyNoChanges(true)
+            .SetSeverity("error"));
+    });
+
     Target Restore => _ => _
         .DependsOn(Format)
         .Executes(() =>
@@ -126,16 +136,6 @@ public partial class Build : NukeBuild
                .SetProjectFile(Solution));
        });
 
-    Target Format => _ => _
-        .Executes(() =>
-        {
-            DotNetTasks.DotNetFormat(s => s
-                .SetProject(Solution)
-                .When(_ => IsServerBuild, s => s)
-                    .SetVerifyNoChanges(true)
-                    .SetSeverity("error"));
-        });
-
     Target CreateVersionLabel => _ => _
         .TriggeredBy(Publish)
         .OnlyWhenStatic(() => GitRepository.IsOnMainOrMasterBranch() || GitRepository.IsOnDevelopBranch())
@@ -149,16 +149,16 @@ public partial class Build : NukeBuild
                 GitTasks.Git($"config user.name \"Our Company Build\"");
             }
 
-            GitTasks.Git($"tag -a {GitVersion.FullSemVer} -m \"Setting git tag on commit to '{GitVersion.FullSemVer}'\"");
-
             try
             {
+                GitTasks.Git($"tag -a {GitVersion.FullSemVer} -m \"Setting git tag on commit to '{GitVersion.FullSemVer}'\"");
+
                 GitTasks.Git($"push origin refs/tags/{GitVersion.FullSemVer}");
                 Log.Information($"Successfully pushed tag {GitVersion.FullSemVer}.");
             }
             catch (ProcessException ex) when (ex.Message.Contains("already exists") || ex.Message.Contains("Updates were rejected because the tag already exists"))
             {
-                Log.Warning($"Tag {GitVersion.FullSemVer} already exists on remote. Skipping push. Details: {ex.Message}");
+                Log.Warning($"Tag {GitVersion.FullSemVer} already exists. Skipping. Details: {ex.Message}");
             }
         });
 
