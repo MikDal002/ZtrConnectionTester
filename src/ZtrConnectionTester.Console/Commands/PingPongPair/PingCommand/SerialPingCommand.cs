@@ -2,6 +2,7 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -13,7 +14,7 @@ namespace ZtrConnectionTester.Console.Commands.PingPongPair.SerialPing;
 
 public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataCollector, ILogger<SerialPingCommand> logger) : CancellableAsyncCommand<SerialPingSettings>
 {
-    PingSendPongReceiveService _pingSendPongReceiveService = new(dataCollector);
+    IPingSendPongReceiveService _pingSendPongReceiveService = new PingSendPongReceiveService(dataCollector);
     public override async Task<int> ExecuteAsync(CommandContext context, SerialPingSettings settings, CancellationToken cancellationToken)
     {
         console.MarkupLine("[yellow]Press Ctrl+C to stop[/]");
@@ -78,13 +79,15 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
 
         statsTable.BorderStyle(new());
         statsTable.AddColumn("Metric");
-        statsTable.AddColumn("Value");
+        statsTable.AddColumn("Value", c => c.Alignment = Justify.Right);
         statsTable.AddRow("Total Pings", summary.TotalPings.ToString());
         statsTable.AddRow("Successful", summary.SuccessfulPings.ToString());
         statsTable.AddRow("Failed", summary.FailedPings.ToString());
-        statsTable.AddRow("Avg Latency (ms)", summary.AverageLatencyMs.ToString("F2"));
-        statsTable.AddRow("Latency Std (ms)", summary.StandardDeviationLatencyMs.ToString("F2"));
-        statsTable.AddRow("Slowest .99 (ms)", summary.Percentile99LatencyMs.ToString("F2"));
+        statsTable.AddRow("Avg Latency (ms)", summary.AverageLatency.TotalMilliseconds.ToString("F1"));
+        statsTable.AddRow("Latency Std (ms)", summary.StandardDeviationLatency.TotalMilliseconds.ToString("F1"));
+        statsTable.AddRow("Slowest .99 (ms)", summary.Percentile99Latency.TotalMilliseconds.ToString("F1"));
+        statsTable.AddRow("Max Latency (ms)", summary.MaxLatency.TotalMilliseconds.ToString("F1"));
+        statsTable.AddRow("Throughput (Bps)", summary.DownloadThroughputBps.ToString("F1"));
 
         var rows = new Rows(statsTable, new Markup("[yellow]Press Ctrl+C to stop[/]"));
 
@@ -96,7 +99,7 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
 
     private static void DrawLogs(Layout layout, IPingDataCollector result)
     {
-        var logEntries = result.GetRecentLogEntries(70); // Display last 15 logs
+        var logEntries = result.GetRecentLogEntries(20); // Display last 15 logs
 
         var logRenderables = logEntries.Select(log =>
         {

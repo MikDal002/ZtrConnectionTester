@@ -34,24 +34,40 @@ public class InMemoryPingDataCollector : IPingDataCollector
     {
         _allPingResults.Add(result);
 
-        AddLogEntry(new LogEntry(DateTime.UtcNow, $"Ping {result.Status}, Latency: {result.LatencyMs:F2}ms, Err: {result.ErrorMessage ?? "N/A"}", LogLevel.Detail, "PingResult"));
+        if (result.ErrorMessage is not null)
+        {
+            AddLogEntry(new LogEntry(DateTime.UtcNow, $"Ping {result.Status}, Latency: {result.Latency.TotalMilliseconds:F1}ms, \r\n[red]Err: {result.ErrorMessage}[/]", LogLevel.Error, "PingResult"));
+        }
+        else
+        {
+            AddLogEntry(new LogEntry(DateTime.UtcNow, $"Ping {result.Status}, Latency: {result.Latency.TotalMilliseconds:F1}ms", LogLevel.Detail, "PingResult"));
+        }
     }
 
     public PingSummary GetSummary()
     {
         var successfulPingsResults = _allPingResults.Where(r => r.Status == PingResultStatus.Success).ToList();
         var successfulPings = successfulPingsResults.Count;
-        var latencies = successfulPingsResults.Select(r => r.LatencyMs).ToList();
+        var latencies = successfulPingsResults.Select(r => r.Latency).Select(d => d.TotalMilliseconds).ToList();
+        var totalBytesReceived = successfulPingsResults.Sum(r => r.BytesReceived);
+        var totalDurationSeconds = successfulPingsResults.Sum(r => r.Latency.TotalSeconds);
+        
+        var downloadThroughputBps = 0.0;
+        if (totalDurationSeconds > 0)
+        {
+            downloadThroughputBps = totalBytesReceived / totalDurationSeconds;
+        }
 
         var summary = new PingSummary
         {
             TotalPings = _allPingResults.Count,
             SuccessfulPings = successfulPings,
             FailedPings = _allPingResults.Count(r => r.Status != PingResultStatus.Success),
-            AverageLatencyMs = successfulPings > 0 ? latencies.Average() : 0,
-            StandardDeviationLatencyMs = CalculateStandardDeviation(latencies),
-            Percentile99LatencyMs = CalculatePercentile(latencies, 0.99),
-            LastNPingResults = _allPingResults/*.TakeLast(MaxLogEntries)*/.ToList() // Default to 10, maybe this should be configurable
+            AverageLatency = successfulPings > 0 ? TimeSpan.FromMilliseconds(latencies.Average()) : TimeSpan.Zero,
+            StandardDeviationLatency = TimeSpan.FromMilliseconds(CalculateStandardDeviation(latencies)),
+            Percentile99Latency = TimeSpan.FromMilliseconds(CalculatePercentile(latencies, 0.99)),
+            MaxLatency = successfulPings > 0 ? TimeSpan.FromMilliseconds(latencies.Max()) : TimeSpan.Zero,
+            DownloadThroughputBps = downloadThroughputBps
         };
         
         return summary;
@@ -60,7 +76,9 @@ public class InMemoryPingDataCollector : IPingDataCollector
     private static double CalculateStandardDeviation(IReadOnlyCollection<double> values)
     {
         if (values.Count < 2)
+        {
             return 0;
+        }
 
         var avg = values.Average();
         var sumOfSquares = values.Sum(val => (val - avg) * (val - avg));
@@ -70,18 +88,22 @@ public class InMemoryPingDataCollector : IPingDataCollector
     private static double CalculatePercentile(IReadOnlyList<double> sortedValues, double percentile)
     {
         if (sortedValues.Count == 0)
+        {
             return 0;
+        }
 
-        var n = sortedValues.Count;
+        var sortedMilliseconds = sortedValues.OrderBy(l => l).ToList();
+
+        var n = sortedMilliseconds.Count;
         var rank = percentile * (n - 1);
         var integralRank = (int)Math.Floor(rank);
         var fractionalRank = rank - integralRank;
 
         if (integralRank >= n - 1)
-            return sortedValues[n - 1];
+            return sortedMilliseconds[n - 1];
 
-        var lowerValue = sortedValues[integralRank];
-        var upperValue = sortedValues[integralRank + 1];
+        var lowerValue = sortedMilliseconds[integralRank];
+        var upperValue = sortedMilliseconds[integralRank + 1];
 
         return lowerValue + fractionalRank * (upperValue - lowerValue);
     }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace ZtrConnectionTester.Console.Commands.PingPongPair.SerialPing;
 
@@ -7,9 +8,9 @@ public record PingSummary
     public required long TotalPings { get; init; }
     public required long SuccessfulPings { get; init; }
     public required long FailedPings { get; init; }
-    public required double AverageLatencyMs { get; init; }
-    public required double StandardDeviationLatencyMs { get; init; }
-    public required double Percentile99LatencyMs { get; init; }
-    public required IReadOnlyList<PingResult> LastNPingResults { get; init; }
-    public int MaxLastNResults { get; init; } = 10; // Configurable
+    public required TimeSpan AverageLatency { get; init; }
+    public required TimeSpan StandardDeviationLatency { get; init; }
+    public required TimeSpan Percentile99Latency { get; init; }
+    public required double DownloadThroughputBps { get; init; }
+    public required TimeSpan MaxLatency { get; init; }
 }

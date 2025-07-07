@@ -10,7 +10,7 @@ namespace ZtrConnectionTester.Console.Commands.PingPongPair.SerialPing;
 
 interface IPingSendPongReceiveService
 {
-
+    Task SendPackageAndWaitForResponseAsync(Stream bidirectionalStream, CancellationToken cancellationToken);
 }
 
 public class PingSendPongReceiveService(IPingDataCollector pingPongDataCollector) : IPingSendPongReceiveService
@@ -47,7 +47,7 @@ public class PingSendPongReceiveService(IPingDataCollector pingPongDataCollector
             // Check if the response contains "PONG"
             if (response.Contains("PONG", StringComparison.OrdinalIgnoreCase))
             {
-                pingPongDataCollector.AddPingResult(PingResult.SuccessResult(stopwatch.ElapsedMilliseconds, response.Length));
+                pingPongDataCollector.AddPingResult(PingResult.SuccessResult(stopwatch.Elapsed, response.Length));
             }
             else
             {
