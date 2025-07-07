@@ -43,8 +43,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   ubuntu-latest:
-    name: ubuntu-latest
-    runs-on: ubuntu-latest
+    name: ubuntu-arm
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,6 +57,6 @@ jobs:
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
       - name: 'Run: Tests'
-        run: ./build.cmd Tests --SystemArchitecture arm64
+        run: ./build.cmd Tests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
