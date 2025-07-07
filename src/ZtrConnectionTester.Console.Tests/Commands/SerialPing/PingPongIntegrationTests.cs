@@ -33,7 +33,7 @@ public class PingPongIntegrationTests
         var cancellationToken = cancellationTokenSource.Token;
 
         var pingTask = Task.Run(() => _pingService.SendPackageAndWaitForResponseAsync(streamCrossover.GetFor1Device(), cancellationToken), cancellationToken);
-        var pongTask = Task.Run(() => _pongService.ReceivePackageAndReturnItAsync(streamCrossover.GetFor2Device(), cancellationToken), cancellationToken);
+        var pongTask = Task.Run(() => _pongService.StartAsync(streamCrossover.GetFor2Device(), cancellationToken), cancellationToken);
 
         // Act
         await Task.WhenAll(pingTask, pongTask);
@@ -55,7 +55,7 @@ public class PingPongIntegrationTests
         var streamCrossover = new StreamCrossover();
 
         var sendTask = Task.Run(async () => await PingSendPongReceiveService.SendPackageAsync(streamCrossover.GetFor1Device()));
-        var receiveTask = Task.Run(async () => await _pongService.ReceivePackageAndReturnItAsync(streamCrossover.GetFor2Device(), CancellationToken.None));
+        var receiveTask = Task.Run(async () => await _pongService.StartAsync(streamCrossover.GetFor2Device(), CancellationToken.None));
 
         await Task.WhenAll(sendTask, receiveTask);
 
