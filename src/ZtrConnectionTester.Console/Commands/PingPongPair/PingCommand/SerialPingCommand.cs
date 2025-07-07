@@ -2,7 +2,6 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -118,7 +117,7 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
         var panel = new Panel(logsPanelContent)
             .Header("Detailed Logs")
             .Expand();
-        
+
         layout.Update(panel);
     }
 

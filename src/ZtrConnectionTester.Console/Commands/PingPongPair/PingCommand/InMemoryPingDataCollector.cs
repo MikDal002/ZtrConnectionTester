@@ -51,7 +51,7 @@ public class InMemoryPingDataCollector : IPingDataCollector
         var latencies = successfulPingsResults.Select(r => r.Latency).Select(d => d.TotalMilliseconds).ToList();
         var totalBytesReceived = successfulPingsResults.Sum(r => r.BytesReceived);
         var totalDurationSeconds = successfulPingsResults.Sum(r => r.Latency.TotalSeconds);
-        
+
         var downloadThroughputBps = 0.0;
         if (totalDurationSeconds > 0)
         {
@@ -69,7 +69,7 @@ public class InMemoryPingDataCollector : IPingDataCollector
             MaxLatency = successfulPings > 0 ? TimeSpan.FromMilliseconds(latencies.Max()) : TimeSpan.Zero,
             DownloadThroughputBps = downloadThroughputBps
         };
-        
+
         return summary;
     }
 
@@ -100,7 +100,9 @@ public class InMemoryPingDataCollector : IPingDataCollector
         var fractionalRank = rank - integralRank;
 
         if (integralRank >= n - 1)
+        {
             return sortedMilliseconds[n - 1];
+        }
 
         var lowerValue = sortedMilliseconds[integralRank];
         var upperValue = sortedMilliseconds[integralRank + 1];
