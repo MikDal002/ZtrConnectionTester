@@ -15,7 +15,7 @@ interface IPingSendPongReceiveService
 
 public class PingSendPongReceiveService(IPingDataCollector pingPongDataCollector) : IPingSendPongReceiveService
 {
-    public static async Task SendPackageAsync(Stream bidirectionalStream)
+    public static async Task SendPackageAsync(Stream bidirectionalStream, CancellationToken cancellationToken)
     {
         if (bidirectionalStream == null)
         {
@@ -27,8 +27,8 @@ public class PingSendPongReceiveService(IPingDataCollector pingPongDataCollector
         var payloadBytes = Encoding.ASCII.GetBytes(payloadString);
 
         // Write the payload to the stream
-        await bidirectionalStream.WriteAsync(payloadBytes, 0, payloadBytes.Length);
-        await bidirectionalStream.FlushAsync();
+        await bidirectionalStream.WriteAsync(payloadBytes, 0, payloadBytes.Length, cancellationToken);
+        await bidirectionalStream.FlushAsync(cancellationToken);
     }
 
     public async Task SendPackageAndWaitForResponseAsync(Stream bidirectionalStream, CancellationToken cancellationToken)
@@ -38,7 +38,7 @@ public class PingSendPongReceiveService(IPingDataCollector pingPongDataCollector
             var stopwatch = Stopwatch.StartNew();
 
             // Send the package
-            await SendPackageAsync(bidirectionalStream);
+            await SendPackageAsync(bidirectionalStream, cancellationToken);
 
             // Read the response
             var response = await bidirectionalStream.ReadLineWithTimeoutAsync(timeout: TimeSpan.FromSeconds(1), cancellationToken: cancellationToken);

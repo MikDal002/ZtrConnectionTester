@@ -22,7 +22,7 @@ public class PongReturnService(IAnsiConsole console) : IPongReturnService
         } while (!cancellationToken.IsCancellationRequested);
     }
 
-    private async Task ReceivePackageAndReturnItAsync(Stream stream, CancellationToken cancellationToken)
+    public async Task ReceivePackageAndReturnItAsync(Stream stream, CancellationToken cancellationToken)
     {
         try
         {
