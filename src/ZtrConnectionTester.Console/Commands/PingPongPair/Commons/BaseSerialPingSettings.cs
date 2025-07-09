@@ -17,6 +17,11 @@ public abstract class BaseSerialPingSettings(ISerialPortEnumerator portEnumerato
     [DefaultValue(115200)]
     public int BaudRate { get; set; }
 
+    [CommandOption("--skip-confirmation")]
+    [Description("Skips the confirmation prompt before starting.")]
+    [DefaultValue(false)]
+    public bool SkipConfirmation { get; set; }
+
     public override ValidationResult Validate()
     {
         if (string.IsNullOrWhiteSpace(Port))

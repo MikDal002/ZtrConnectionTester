@@ -51,6 +51,13 @@ public static class SerialPortExtensions
                 .Expand());
         console.WriteLine();
 
+        if (!settings.SkipConfirmation)
+        {
+            console.Prompt(
+                new TextPrompt<string>("[yellow]Press ENTER to continue...[/]")
+                    .AllowEmpty());
+        }
+
         return port;
     }
 }

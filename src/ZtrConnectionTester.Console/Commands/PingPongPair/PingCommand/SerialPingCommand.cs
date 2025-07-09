@@ -1,11 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Rendering;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -15,27 +11,9 @@ using ZtrConnectionTester.Console.Commands.PingPongPair.Commons;
 
 namespace ZtrConnectionTester.Console.Commands.PingPongPair.SerialPing;
 
-public static class SerialPingDependencyInjection
-{
-    public static IServiceCollection RegisterSerialPingCommand(this IServiceCollection services)
-    {
-        services.AddSingleton<ISerialPortEnumerator, DefaultSerialPortEnumerator>();
-        services.AddTransient<IPingDataCollector, InMemoryPingDataCollector>();
-
-        return services;
-    }
-}
-
-public class SerialPingSettings(ISerialPortEnumerator portEnumerator) : BaseSerialPingSettings(portEnumerator)
-{
-
-}
-
 public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataCollector, ILogger<SerialPingCommand> logger) : CancellableAsyncCommand<SerialPingSettings>
 {
-    private readonly ILogger<SerialPingCommand> _logger = logger;
-
-    PingSendPongReceiveService _pingSendPongReceiveService = new(dataCollector);
+    IPingSendPongReceiveService _pingSendPongReceiveService = new PingSendPongReceiveService(dataCollector);
     public override async Task<int> ExecuteAsync(CommandContext context, SerialPingSettings settings, CancellationToken cancellationToken)
     {
         console.MarkupLine("[yellow]Press Ctrl+C to stop[/]");
@@ -78,7 +56,7 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
                         }
                         catch (TaskCanceledException)
                         {
-                            _logger.LogWarning("PingConsoleUI: Loop cancelled via Task.Delay exception.");
+                            logger.LogWarning("PingConsoleUI: Loop cancelled via Task.Delay exception.");
                         }
                     } while (!cancellationToken.IsCancellationRequested);
                 }
@@ -100,11 +78,15 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
 
         statsTable.BorderStyle(new());
         statsTable.AddColumn("Metric");
-        statsTable.AddColumn("Value");
+        statsTable.AddColumn("Value", c => c.Alignment = Justify.Right);
         statsTable.AddRow("Total Pings", summary.TotalPings.ToString());
         statsTable.AddRow("Successful", summary.SuccessfulPings.ToString());
         statsTable.AddRow("Failed", summary.FailedPings.ToString());
-        statsTable.AddRow("Avg Latency (ms)", summary.AverageLatencyMs.ToString("F2"));
+        statsTable.AddRow("Avg Latency (ms)", summary.AverageLatency.TotalMilliseconds.ToString("F1"));
+        statsTable.AddRow("Latency Std (ms)", summary.StandardDeviationLatency.TotalMilliseconds.ToString("F1"));
+        statsTable.AddRow("Slowest .99 (ms)", summary.Percentile99Latency.TotalMilliseconds.ToString("F1"));
+        statsTable.AddRow("Max Latency (ms)", summary.MaxLatency.TotalMilliseconds.ToString("F1"));
+        statsTable.AddRow("Throughput (Bps)", summary.DownloadThroughputBps.ToString("F1"));
 
         var rows = new Rows(statsTable, new Markup("[yellow]Press Ctrl+C to stop[/]"));
 
@@ -116,7 +98,7 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
 
     private static void DrawLogs(Layout layout, IPingDataCollector result)
     {
-        var logEntries = result.GetRecentLogEntries(15); // Display last 15 logs
+        var logEntries = result.GetRecentLogEntries(20); // Display last 15 logs
 
         var logRenderables = logEntries.Select(log =>
         {
@@ -132,136 +114,16 @@ public class SerialPingCommand(IAnsiConsole console, IPingDataCollector dataColl
         }).ToList<IRenderable>();
 
         var logsPanelContent = new Rows(logRenderables);
-        layout
-            .Update(new Panel(logsPanelContent)
-                .Header("Detailed Logs")
-                .Expand());
+        var panel = new Panel(logsPanelContent)
+            .Header("Detailed Logs")
+            .Expand();
+
+        layout.Update(panel);
     }
 
     async Task<IPingDataCollector> MyProcessAsync(Stream serialPortBaseStream, CancellationToken cancellationToken)
     {
         await _pingSendPongReceiveService.SendPackageAndWaitForResponseAsync(serialPortBaseStream, cancellationToken);
         return dataCollector;
-    }
-}
-
-// Supporting records/enums (can be in a shared location or with IPingDataCollector)
-public record LogEntry(DateTime Timestamp, string Message, LogLevel Level, string? Source = null);
-public enum LogLevel { Detail, Info, Warning, Error }
-public record PingSummary
-{
-    public long TotalPings { get; set; }
-    public long SuccessfulPings { get; set; }
-    public long FailedPings { get; set; }
-    public double TotalLatencyMs { get; set; }
-    public double AverageLatencyMs => SuccessfulPings > 0 ? TotalLatencyMs / SuccessfulPings : 0;
-    public List<PingResult> LastNPingResults { get; } = new();
-    public int MaxLastNResults { get; set; } = 10; // Configurable
-    // Add other relevant aggregate statistics like min/max latency if needed
-}
-
-// Forward declaration for PingResult, assuming it exists or will be created elsewhere.
-// If PingResult is defined in another file within the same namespace, this might not be strictly necessary
-// but helps clarify dependency if it's in a different namespace or assembly.
-// For now, let's assume PingResult will be accessible.
-// If it's defined in this project, ensure its namespace is imported or it's in the same namespace.
-// public record PingResult( ... ); // Actual definition of PingResult is needed
-
-public interface IPingDataCollector
-{
-    void AddLogEntry(LogEntry entry);
-    IEnumerable<LogEntry> GetRecentLogEntries(int count); // For log panel
-    void AddPingResult(PingResult result); // For statistics
-    PingSummary GetSummary(); // For statistics table
-}
-
-public class PingResult
-{
-    public PingResultStatus Status { get; }
-    public double LatencyMs { get; } // Only valid if Status is Success
-    public int BytesReceived { get; } // Number of bytes received for successful pings
-    public string? ErrorMessage { get; } // For IoError or potentially Corrupted
-
-    private PingResult(PingResultStatus status, double latencyMs = 0, int bytesReceived = 0, string? errorMessage = null)
-    {
-        Status = status;
-        LatencyMs = latencyMs;
-        BytesReceived = bytesReceived;
-        ErrorMessage = errorMessage;
-    }
-
-    public static PingResult SuccessResult(double latencyMs, int bytesReceived)
-    {
-        return new(PingResultStatus.Success, latencyMs, bytesReceived);
-    }
-
-    public static PingResult TimeoutResult()
-    {
-        return new(PingResultStatus.Timeout);
-    }
-
-    public static PingResult CorruptedResult(string? details = null)
-    {
-        return new(PingResultStatus.Corrupted, errorMessage: details);
-    }
-
-    public static PingResult IoErrorResult(string message)
-    {
-        return new(PingResultStatus.IoError, errorMessage: message);
-    }
-
-    public static PingResult CancelledResult()
-    {
-        return new(PingResultStatus.Cancelled);
-        // Added factory method
-    }
-}
-
-public enum PingResultStatus
-{
-    Success,
-    Timeout,
-    Corrupted,
-    IoError,
-    Cancelled // Added for explicit cancellation handling within the executor
-}
-
-public class InMemoryPingDataCollector : IPingDataCollector
-{
-    private readonly ConcurrentQueue<LogEntry> _logEntries = new();
-    private readonly List<PingResult> _allPingResults = new();
-    private const int MaxLogEntries = 200; // Keep a rolling buffer of logs
-
-    public void AddLogEntry(LogEntry entry)
-    {
-        _logEntries.Enqueue(entry);
-        while (_logEntries.Count > MaxLogEntries && _logEntries.TryDequeue(out _))
-        {
-        }
-    }
-
-    public IEnumerable<LogEntry> GetRecentLogEntries(int count) =>
-        _logEntries.Reverse().Take(count).Reverse().ToList(); // Show newest at bottom
-
-    public void AddPingResult(PingResult result)
-    {
-        _allPingResults.Add(result);
-
-        AddLogEntry(new LogEntry(DateTime.UtcNow, $"Ping {result.Status}, Latency: {result.LatencyMs:F2}ms, Err: {result.ErrorMessage ?? "N/A"}", LogLevel.Detail, "PingResult"));
-    }
-
-    public PingSummary GetSummary()
-    {
-        var successfulPings = _allPingResults.Count(r => r.Status == PingResultStatus.Success);
-        var summary = new PingSummary
-        {
-            TotalPings = _allPingResults.Count,
-            SuccessfulPings = successfulPings,
-            FailedPings = _allPingResults.Count(r => r.Status != PingResultStatus.Success),
-            TotalLatencyMs = _allPingResults.Where(r => r.Status == PingResultStatus.Success).Sum(r => r.LatencyMs)
-            // MaxLastNResults is already set in PingSummary record definition
-        };
-        summary.LastNPingResults.AddRange(_allPingResults.TakeLast(summary.MaxLastNResults).ToList());
-        return summary;
     }
 }
